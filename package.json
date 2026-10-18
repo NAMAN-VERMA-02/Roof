@@ -1,0 +1,22 @@
+{
+  "name": "roof",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n api,worker,web -c blue,cyan,green \"npm run dev -w server\" \"npm run worker -w server\" \"npm run dev -w client\"",
+    "demo": "concurrently -k -n demo,web -c blue,green \"npm run demo -w server\" \"npm run dev -w client\"",
+    "local": "concurrently -k -n local,web -c blue,green \"npm run local -w server\" \"npm run dev -w client\"",
+    "build": "npm run build -w client",
+    "start": "npm run start -w server",
+    "test": "npm run test -w server && npm run test -w client",
+    "format": "prettier --write \"client/src/**/*.{js,jsx,css}\" \"server/src/**/*.js\" \"server/test/**/*.js\" \"client/test/**/*.js\" \"*.json\" \"README.md\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "prettier": "^3.9.10"
+  }
+}
