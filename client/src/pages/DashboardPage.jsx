@@ -56,7 +56,7 @@ export default function DashboardPage() {
                   Good things deserve
                   <br />a little <em>looking after.</em>
                 </h2>
-                <p>Keep every warranty, receipt and support contact in one reliable place.</p>
+                <p>Keep every warranty, document and support contact in one reliable place.</p>
                 <Link to="/products" className="hero-link">
                   Explore your products <ArrowRight size={17} />
                 </Link>
@@ -105,8 +105,8 @@ export default function DashboardPage() {
               />
               <Stat
                 icon={FileText}
-                label="Receipts saved"
-                value={counts.receipts}
+                label="Documents saved"
+                value={counts.documents}
                 note="Ready when needed"
                 tone="teal"
               />
@@ -168,7 +168,8 @@ export default function DashboardPage() {
                   <div>
                     <strong>Keep the proof</strong>
                     <p>
-                      Add a receipt to each product so it is easy to find when you need service.
+                      Save bills and warranty cards so proof is always easy to find when you need
+                      service.
                     </p>
                   </div>
                 </div>
@@ -181,8 +182,8 @@ export default function DashboardPage() {
                     <p>Choose when an email should reach you before coverage ends.</p>
                   </div>
                 </div>
-                <Link to="/reminders" className="guidance-link">
-                  Manage reminders <ArrowRight size={16} />
+                <Link to="/documents" className="guidance-link">
+                  Open document vault <ArrowRight size={16} />
                 </Link>
               </section>
             </div>

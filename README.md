@@ -1,12 +1,12 @@
 # Roof
 
-Roof is a full-stack warranty and receipt vault built for the college project requirements in this folder. Users can privately manage products and warranty dates, attach receipts, search their vault, save service contacts, and schedule email reminders.
+Roof is a full-stack warranty and document vault built for the college project requirements in this folder. Users can privately manage products and warranty dates, save paper warranty proof online, search their files, keep service contacts, and schedule email reminders.
 
 ## Stack
 
 - React 19, React Router, Vite and plain JavaScript/CSS for the responsive frontend.
 - Node.js, Express, Mongoose and MongoDB for the API and structured data.
-- MongoDB GridFS for private PDF/JPEG/PNG receipts.
+- MongoDB GridFS for private PDF/JPEG/PNG documents.
 - A separate Node.js reminder worker and Nodemailer SMTP delivery.
 
 ## Run locally with saved data
@@ -18,7 +18,7 @@ npm install
 npm run local
 ```
 
-Open **http://localhost:5173** and create an account. This starts MongoDB locally and stores its files in `D:\PE\.local-mongo`, so products and receipts remain after restart. It uses a MongoDB binary downloaded by the development dependency; use a separately managed MongoDB for deployment. Without SMTP settings, reminder attempts are recorded as failed rather than silently marked sent.
+Open **http://localhost:5173** and create an account. This starts MongoDB locally and stores its files in `D:\PE\.local-mongo`, so products and documents remain after restart. It uses a MongoDB binary downloaded by the development dependency; use a separately managed MongoDB for deployment. Without SMTP settings, reminder attempts are recorded as failed rather than silently marked sent.
 
 For a disposable demo instead, run `npm run demo`. Its database is erased when the command stops.
 
@@ -41,14 +41,15 @@ For deployment, run `npm run build`, set `NODE_ENV=production`, `APP_ORIGIN` to 
 
 ## What is implemented
 
-| Area             | Behavior                                                                                                                                                    |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Authentication   | Registration, sign-in/out, hashed passwords, seven-day opaque sessions stored in MongoDB, rate-limited auth endpoints, owner checks on every private route. |
-| Products         | Create, list, search, filter, inspect, edit, delete; warranty dates calculated from calendar months or entered from manufacturer terms.                     |
-| Receipts         | Optional upload, type/size validation, private GridFS storage, owner-checked preview/download, deletion.                                                    |
-| Dashboard        | Product and receipt counts, coverage categories, upcoming expiries.                                                                                         |
-| Reminders        | Per-user email settings, due jobs, atomic claiming, bounded retries, delivery history.                                                                      |
-| Service contacts | Product-linked names, phone numbers, addresses, and HTTPS websites, with full create/view/edit/delete controls.                                             |
+| Area             | Behavior                                                                                                                                                                                              |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Authentication   | Registration, sign-in/out, hashed passwords, seven-day opaque sessions stored in MongoDB, rate-limited auth endpoints, owner checks on every private route.                                           |
+| Products         | Create, list, search, filter, inspect, edit, delete; warranty dates calculated from calendar months or entered from manufacturer terms.                                                               |
+| Documents        | Product-linked receipts, invoices, warranty cards, manuals, service records and other proof; private PDF/image upload, notes, preview, download, edit and deletion. Existing receipts stay available. |
+| Document vault   | One searchable view across all products, with document type filters and direct upload to a chosen product.                                                                                            |
+| Dashboard        | Product and document counts, coverage categories, upcoming expiries.                                                                                                                                  |
+| Reminders        | Per-user email settings, due jobs, atomic claiming, bounded retries, delivery history.                                                                                                                |
+| Service contacts | Product-linked names, phone numbers, addresses, and HTTPS websites, with full create/view/edit/delete controls.                                                                                       |
 
 The calculated last covered day is the warranty start date plus the entered number of calendar months, minus one day. When a target month is shorter, the anniversary is clamped to that month's last day before subtracting one day. Users can enter the manufacturer-stated end date instead. A warranty stays active through its end date; it is “expiring soon” during its last 30 days. Missing end dates are “incomplete.”
 
@@ -59,7 +60,7 @@ npm test
 npm run build
 ```
 
-The API tests use a temporary MongoDB and cover account isolation, product CRUD, receipt retrieval, contacts, dashboard results, validation, and reminder-job processing. The client test checks the warranty preview calculation. A local SMTP server test verifies actual email transport; delivery to real inboxes needs your provider settings.
+The API tests use a temporary MongoDB and cover account isolation, product CRUD, document upload/search/retrieval, legacy receipts, contacts, dashboard results, validation, and reminder-job processing. The client test checks the warranty preview calculation. A local SMTP server test verifies actual email transport; delivery to real inboxes needs your provider settings.
 
 ```text
 client/src/       React pages, components, auth context, API helper, styles
@@ -70,8 +71,8 @@ client/test/      Client date-preview test
 
 ## Operational notes
 
-- Only authenticated owners can access their records or stream receipts. GridFS is never public.
-- Receipts are limited to 10 MB and checked by file signature for PDF, PNG, or JPEG.
+- Only authenticated owners can access their records or stream documents. GridFS is never public.
+- Documents are limited to 10 MB each and checked by file signature for PDF, PNG, or JPEG. Photograph paper documents clearly so they remain useful as proof.
 - The worker uses a unique reminder key and an atomic claim to prevent ordinary duplicate scheduling. A crash after an SMTP server accepts a message but before MongoDB records success can still cause a retry; exactly-once external email delivery cannot be guaranteed by the app alone.
 - `npm run local` keeps data between restarts in `.local-mongo`; `npm run demo` is temporary. A managed MongoDB URL is recommended for deployment.
-- The supplied SRS and diagrams are reflected in the [architecture PDF](Warranty_Receipt_Vault_Architecture.pdf). OCR, shared family accounts, automatic claims, and push notifications are outside this release.
+- The supplied SRS and diagrams are reflected in the [initial architecture PDF](Warranty_Receipt_Vault_Architecture.pdf). The document vault described above extends that initial scope. OCR, shared family accounts, automatic claims, and push notifications are outside this release.

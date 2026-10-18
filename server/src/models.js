@@ -58,6 +58,12 @@ const receiptSchema = new Schema(
     originalName: { type: String, required: true },
     mimeType: { type: String, required: true },
     size: { type: Number, required: true },
+    category: {
+      type: String,
+      enum: ['receipt', 'invoice', 'warranty_card', 'manual', 'service_record', 'other'],
+      default: 'receipt',
+    },
+    note: { type: String, default: '', trim: true, maxlength: 300 },
   },
   { timestamps: true },
 );

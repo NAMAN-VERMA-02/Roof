@@ -18,23 +18,19 @@ export function objectId(value) {
 
 export function errorHandler(error, _req, res, _next) {
   if (error instanceof ZodError) {
-    return res
-      .status(400)
-      .json({
-        error: 'Please correct the highlighted information.',
-        details: error.issues.map((i) => ({ field: i.path.join('.'), message: i.message })),
-      });
+    return res.status(400).json({
+      error: 'Please correct the highlighted information.',
+      details: error.issues.map((i) => ({ field: i.path.join('.'), message: i.message })),
+    });
   }
   if (error?.code === 11000) return res.status(409).json({ error: 'This record already exists.' });
   if (error?.name === 'MulterError')
-    return res
-      .status(400)
-      .json({
-        error:
-          error.code === 'LIMIT_FILE_SIZE'
-            ? 'The receipt must be 10 MB or smaller.'
-            : 'Upload failed.',
-      });
+    return res.status(400).json({
+      error:
+        error.code === 'LIMIT_FILE_SIZE'
+          ? 'The document must be 10 MB or smaller.'
+          : 'Upload failed.',
+    });
   if (error?.name === 'CastError') return res.status(400).json({ error: 'Invalid record ID.' });
   const status = error.status || 500;
   if (status >= 500) console.error(error);

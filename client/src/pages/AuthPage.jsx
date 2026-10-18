@@ -58,7 +58,7 @@ export default function AuthPage({ mode }) {
             <em>under one roof.</em>
           </h1>
           <p>
-            Receipts, warranties and important dates — beautifully organized and always within
+            Bills, warranty cards and important dates — beautifully organized and always within
             reach.
           </p>
           <div className="auth-feature-stack">
@@ -67,8 +67,8 @@ export default function AuthPage({ mode }) {
                 <FileCheck2 size={20} />
               </span>
               <div>
-                <strong>Never lose a receipt</strong>
-                <small>Your proof of purchase, safely stored.</small>
+                <strong>Keep your proof close</strong>
+                <small>Important documents, safely stored online.</small>
               </div>
             </div>
             <div>
@@ -178,7 +178,7 @@ export default function AuthPage({ mode }) {
           </p>
           <div className="auth-security">
             <ShieldCheck size={16} /> Private by default. Only you can see your products and
-            receipts.
+            documents.
           </div>
         </div>
       </section>

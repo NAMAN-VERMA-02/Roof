@@ -15,24 +15,30 @@ import {
   ShieldCheck,
   Trash2,
   UploadCloud,
-  X,
 } from 'lucide-react';
 import { api, friendlyError } from '../lib/api';
 import { formatDate } from '../lib/dates';
+import { documentTypes, documentTypeLabel } from '../lib/documents';
 import { EmptyState, Loading, Notice, StatusBadge } from '../components/UI';
+import DocumentPreview from '../components/DocumentPreview';
 
 export default function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const [product, setProduct] = useState(null);
-  const [receipts, setReceipts] = useState([]);
+  const [documents, setDocuments] = useState([]);
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState(location.state?.notice || '');
   const [noticeType, setNoticeType] = useState(location.state?.noticeType || 'success');
   const [uploadBusy, setUploadBusy] = useState(false);
+  const [uploadCategory, setUploadCategory] = useState('receipt');
+  const [uploadNote, setUploadNote] = useState('');
+  const [editingDocumentId, setEditingDocumentId] = useState(null);
+  const [documentForm, setDocumentForm] = useState({ category: 'receipt', note: '' });
+  const [documentBusy, setDocumentBusy] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
   const [contactForm, setContactForm] = useState({ name: '', phone: '', address: '', website: '' });
   const [editingContactId, setEditingContactId] = useState(null);
@@ -41,11 +47,11 @@ export default function ProductDetailPage() {
   async function load() {
     const [p, r, c] = await Promise.all([
       api(`/products/${id}`),
-      api(`/products/${id}/receipts`),
+      api(`/products/${id}/documents`),
       api(`/products/${id}/service-centers`),
     ]);
     setProduct(p.product);
-    setReceipts(r.receipts);
+    setDocuments(r.documents);
     setContacts(c.contacts);
   }
   useEffect(() => {
@@ -61,9 +67,12 @@ export default function ProductDetailPage() {
     try {
       const data = new FormData();
       data.append('file', file);
-      await api(`/products/${id}/receipts`, { method: 'POST', body: data });
+      data.append('category', uploadCategory);
+      data.append('note', uploadNote);
+      await api(`/products/${id}/documents`, { method: 'POST', body: data });
       await load();
-      setNotice('Receipt uploaded and stored privately.');
+      setUploadNote('');
+      setNotice('Document uploaded and stored privately.');
       setNoticeType('success');
     } catch (err) {
       setError(friendlyError(err));
@@ -72,15 +81,34 @@ export default function ProductDetailPage() {
       event.target.value = '';
     }
   }
-  async function deleteReceipt(receiptId) {
-    if (!window.confirm('Delete this receipt permanently?')) return;
+  async function deleteDocument(documentId) {
+    if (!window.confirm('Delete this document permanently?')) return;
     try {
-      await api(`/receipts/${receiptId}`, { method: 'DELETE' });
-      setReceipts((v) => v.filter((r) => r.id !== receiptId));
-      setNotice('Receipt deleted.');
+      await api(`/documents/${documentId}`, { method: 'DELETE' });
+      setDocuments((value) => value.filter((document) => document.id !== documentId));
+      setNotice('Document deleted.');
       setNoticeType('success');
     } catch (err) {
       setError(friendlyError(err));
+    }
+  }
+  async function saveDocument(event) {
+    event.preventDefault();
+    setDocumentBusy(true);
+    setError('');
+    try {
+      const { document } = await api(`/documents/${editingDocumentId}`, {
+        method: 'PATCH',
+        body: documentForm,
+      });
+      setDocuments((value) => value.map((item) => (item.id === document.id ? document : item)));
+      setEditingDocumentId(null);
+      setNotice('Document details updated.');
+      setNoticeType('success');
+    } catch (err) {
+      setError(friendlyError(err));
+    } finally {
+      setDocumentBusy(false);
     }
   }
   async function deleteContact(contactId) {
@@ -143,7 +171,7 @@ export default function ProductDetailPage() {
   async function deleteProduct() {
     if (
       !window.confirm(
-        `Delete ${product.name} and all its receipts and contacts? This cannot be undone.`,
+        `Delete ${product.name} and all its documents and contacts? This cannot be undone.`,
       )
     )
       return;
@@ -235,11 +263,42 @@ export default function ProductDetailPage() {
               <div>
                 <div className="eyebrow">YOUR FILES</div>
                 <h2>
-                  Receipts <span className="section-count">{receipts.length}</span>
+                  Product documents <span className="section-count">{documents.length}</span>
                 </h2>
               </div>
+              <Link to="/documents" className="text-link">
+                View vault <ArrowUpRight size={16} />
+              </Link>
+            </div>
+            <p className="document-intro">
+              Keep your warranty card, bill and proof here. You can pull them up whenever the paper
+              copy is missing.
+            </p>
+            <div className="document-upload-fields">
+              <label className="field">
+                <span>Document type</span>
+                <select
+                  value={uploadCategory}
+                  onChange={(event) => setUploadCategory(event.target.value)}
+                >
+                  {documentTypes.map((type) => (
+                    <option value={type.value} key={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>Note (optional)</span>
+                <input
+                  value={uploadNote}
+                  onChange={(event) => setUploadNote(event.target.value)}
+                  maxLength={300}
+                  placeholder="e.g. Original stamped card"
+                />
+              </label>
               <label className="button button-secondary upload-button">
-                <UploadCloud size={17} /> {uploadBusy ? 'Uploading...' : 'Upload receipt'}
+                <UploadCloud size={17} /> {uploadBusy ? 'Uploading...' : 'Upload file'}
                 <input
                   type="file"
                   accept="application/pdf,image/png,image/jpeg"
@@ -248,49 +307,115 @@ export default function ProductDetailPage() {
                 />
               </label>
             </div>
-            {receipts.length ? (
+            <p className="document-help">
+              PDF, PNG or JPEG · Up to 10 MB per file · Private to your account
+            </p>
+            {documents.length ? (
               <div className="receipt-list">
-                {receipts.map((r) => (
-                  <div className="receipt-row" key={r.id}>
-                    <div className="file-icon">
-                      <FileText size={20} />
+                {documents.map((document) => (
+                  <div key={document.id}>
+                    <div className="receipt-row">
+                      <div className="file-icon">
+                        <FileText size={20} />
+                      </div>
+                      <div className="receipt-info">
+                        <strong>{document.originalName}</strong>
+                        <span>
+                          {documentTypeLabel(document.category)} ·{' '}
+                          {Math.max(1, Math.round(document.size / 1024))} KB
+                        </span>
+                        {document.note && <span>{document.note}</span>}
+                      </div>
+                      <button
+                        className="icon-action"
+                        onClick={() => {
+                          setEditingDocumentId(document.id);
+                          setDocumentForm({
+                            category: document.category,
+                            note: document.note || '',
+                          });
+                        }}
+                        title="Edit document details"
+                        aria-label={`Edit ${document.originalName}`}
+                      >
+                        <Edit3 size={17} />
+                      </button>
+                      <button
+                        className="icon-action"
+                        onClick={() => setPreview(document)}
+                        title="Preview document"
+                        aria-label={`Preview ${document.originalName}`}
+                      >
+                        <ArrowUpRight size={18} />
+                      </button>
+                      <a
+                        className="icon-action"
+                        href={`/api/documents/${document.id}/file?download=1`}
+                        title="Download document"
+                        aria-label={`Download ${document.originalName}`}
+                      >
+                        <Download size={18} />
+                      </a>
+                      <button
+                        className="icon-action danger"
+                        onClick={() => deleteDocument(document.id)}
+                        title="Delete document"
+                        aria-label={`Delete ${document.originalName}`}
+                      >
+                        <Trash2 size={17} />
+                      </button>
                     </div>
-                    <div className="receipt-info">
-                      <strong>{r.originalName}</strong>
-                      <span>
-                        {Math.max(1, Math.round(r.size / 1024))} KB ·{' '}
-                        {new Date(r.createdAt).toLocaleDateString('en-IN')}
-                      </span>
-                    </div>
-                    <button
-                      className="icon-action"
-                      onClick={() => setPreview(r)}
-                      title="Preview receipt"
-                    >
-                      <ArrowUpRight size={18} />
-                    </button>
-                    <a
-                      className="icon-action"
-                      href={`/api/receipts/${r.id}/file?download=1`}
-                      title="Download receipt"
-                    >
-                      <Download size={18} />
-                    </a>
-                    <button
-                      className="icon-action danger"
-                      onClick={() => deleteReceipt(r.id)}
-                      title="Delete receipt"
-                    >
-                      <Trash2 size={17} />
-                    </button>
+                    {editingDocumentId === document.id && (
+                      <form className="document-edit-form" onSubmit={saveDocument}>
+                        <label className="field">
+                          <span>Type</span>
+                          <select
+                            value={documentForm.category}
+                            onChange={(event) =>
+                              setDocumentForm((value) => ({
+                                ...value,
+                                category: event.target.value,
+                              }))
+                            }
+                          >
+                            {documentTypes.map((type) => (
+                              <option value={type.value} key={type.value}>
+                                {type.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="field">
+                          <span>Note</span>
+                          <input
+                            value={documentForm.note}
+                            onChange={(event) =>
+                              setDocumentForm((value) => ({ ...value, note: event.target.value }))
+                            }
+                            maxLength={300}
+                            placeholder="How will you recognize this file?"
+                          />
+                        </label>
+                        <button className="button button-primary" disabled={documentBusy}>
+                          Save
+                        </button>
+                        <button
+                          className="button button-secondary"
+                          type="button"
+                          onClick={() => setEditingDocumentId(null)}
+                        >
+                          Cancel
+                        </button>
+                      </form>
+                    )}
                   </div>
                 ))}
               </div>
             ) : (
               <EmptyState
                 icon={FileText}
-                title="No receipts yet"
-                text="Upload your invoice or receipt here so it is easy to find later."
+                title="No documents saved yet"
+                text="Add a warranty card, bill or manual and it will be here when you need it."
               />
             )}
           </section>
@@ -450,33 +575,7 @@ export default function ProductDetailPage() {
           </div>
         </aside>
       </div>
-      {preview && (
-        <div className="modal-backdrop" role="presentation" onClick={() => setPreview(null)}>
-          <div
-            className="preview-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-label={`Preview ${preview.originalName}`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="modal-head">
-              <strong>{preview.originalName}</strong>
-              <div>
-                <a href={`/api/receipts/${preview.id}/file?download=1`} title="Download">
-                  <Download size={19} />
-                </a>
-                <button onClick={() => setPreview(null)} aria-label="Close">
-                  <X size={21} />
-                </button>
-              </div>
-            </div>
-            <iframe
-              title={`Receipt ${preview.originalName}`}
-              src={`/api/receipts/${preview.id}/file`}
-            />
-          </div>
-        </div>
-      )}
+      <DocumentPreview document={preview} onClose={() => setPreview(null)} />
     </div>
   );
 }

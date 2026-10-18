@@ -61,18 +61,17 @@ test('full account, product, receipt, contact and reminder lifecycle is private'
     .attach('file', pdf, { filename: 'invoice.pdf', contentType: 'application/pdf' });
   assert.equal(response.status, 201, JSON.stringify(response.body));
   const receiptId = response.body.receipt.id;
+  assert.equal((await alice.get(`/api/products/${productId}/documents`)).body.documents.length, 1);
   assert.equal((await alice.get(`/api/receipts/${receiptId}/file`)).status, 200);
   assert.equal((await bob.get(`/api/receipts/${receiptId}/file`)).status, 404);
   assert.equal((await bob.delete(`/api/receipts/${receiptId}`)).status, 404);
 
-  response = await alice
-    .post(`/api/products/${productId}/service-centers`)
-    .send({
-      name: 'Northstar Support',
-      phone: '1234567890',
-      address: 'Main Street',
-      website: 'https://example.com',
-    });
+  response = await alice.post(`/api/products/${productId}/service-centers`).send({
+    name: 'Northstar Support',
+    phone: '1234567890',
+    address: 'Main Street',
+    website: 'https://example.com',
+  });
   assert.equal(response.status, 201);
   const contactId = response.body.contact.id;
   assert.equal((await bob.get(`/api/products/${productId}/service-centers`)).status, 404);
@@ -103,6 +102,53 @@ test('full account, product, receipt, contact and reminder lifecycle is private'
   assert.equal((await alice.get('/api/dashboard/summary')).body.counts.total, 0);
   assert.equal((await alice.post('/api/auth/logout')).status, 204);
   assert.equal((await alice.get('/api/products')).status, 401);
+});
+
+test('document vault finds warranty proof and keeps it private', async () => {
+  const owner = supertest.agent(app);
+  const stranger = supertest.agent(app);
+  await owner
+    .post('/api/auth/register')
+    .send({ name: 'Vault Owner', email: 'vault@example.com', password: 'strongpassword' });
+  await stranger
+    .post('/api/auth/register')
+    .send({ name: 'Vault Stranger', email: 'stranger@example.com', password: 'strongpassword' });
+  const product = await owner
+    .post('/api/products')
+    .send({ ...productInput, name: 'Travel Camera' });
+  const productId = product.body.product.id;
+  const pdf = Buffer.from('%PDF-1.4\n1 0 obj\n<<>>\nendobj\n%%EOF\n');
+  const uploaded = await owner
+    .post(`/api/products/${productId}/documents`)
+    .field('category', 'warranty_card')
+    .field('note', 'Stamped at purchase')
+    .attach('file', pdf, { filename: 'coverage.pdf', contentType: 'application/pdf' });
+  assert.equal(uploaded.status, 201, JSON.stringify(uploaded.body));
+  const documentId = uploaded.body.document.id;
+  assert.equal(uploaded.body.document.category, 'warranty_card');
+  assert.equal((await owner.get('/api/documents?search=Travel%20Camera')).body.documents.length, 1);
+  assert.equal((await owner.get('/api/documents?search=stamped')).body.documents.length, 1);
+  assert.equal((await owner.get('/api/documents?category=invoice')).body.documents.length, 0);
+  assert.equal((await owner.get(`/api/documents/${documentId}/file`)).status, 200);
+  assert.equal((await stranger.get('/api/documents')).body.documents.length, 0);
+  assert.equal((await stranger.get(`/api/documents/${documentId}/file`)).status, 404);
+  assert.equal(
+    (await stranger.patch(`/api/documents/${documentId}`).send({ category: 'manual', note: '' }))
+      .status,
+    404,
+  );
+  assert.equal((await stranger.delete(`/api/documents/${documentId}`)).status, 404);
+  assert.equal((await owner.get('/api/dashboard/summary')).body.counts.documents, 1);
+  assert.equal((await owner.get('/api/dashboard/summary')).body.counts.receipts, 0);
+  const changed = await owner
+    .patch(`/api/documents/${documentId}`)
+    .send({ category: 'manual', note: 'Instructions for setup' });
+  assert.equal(changed.status, 200);
+  assert.equal(changed.body.document.note, 'Instructions for setup');
+  assert.equal((await owner.get('/api/documents?category=manual')).body.documents.length, 1);
+  assert.equal((await owner.get(`/api/products/${productId}/receipts`)).body.receipts.length, 0);
+  assert.equal((await owner.delete(`/api/documents/${documentId}`)).status, 204);
+  assert.equal((await owner.get('/api/documents')).body.documents.length, 0);
 });
 
 test('invalid inputs and upload types return clear errors', async () => {

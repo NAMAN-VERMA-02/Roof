@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { api, friendlyError } from '../lib/api';
 import { calculatedEnd, formatDate } from '../lib/dates';
+import { documentTypes } from '../lib/documents';
 import { Loading, Notice } from '../components/UI';
 
 const blank = {
@@ -34,6 +35,7 @@ export default function ProductFormPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState(blank);
   const [file, setFile] = useState(null);
+  const [fileCategory, setFileCategory] = useState('receipt');
   const [loading, setLoading] = useState(editing);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -82,12 +84,13 @@ export default function ProductFormPage() {
       if (file) {
         const upload = new FormData();
         upload.append('file', file);
+        upload.append('category', fileCategory);
         try {
-          await api(`/products/${product.id}/receipts`, { method: 'POST', body: upload });
+          await api(`/products/${product.id}/documents`, { method: 'POST', body: upload });
         } catch (uploadError) {
           navigate(`/products/${product.id}`, {
             state: {
-              notice: `Product saved, but the receipt was not uploaded: ${friendlyError(uploadError)}`,
+              notice: `Product saved, but the document was not uploaded: ${friendlyError(uploadError)}`,
               noticeType: 'error',
             },
           });
@@ -272,10 +275,23 @@ export default function ProductFormPage() {
                 <FileUp size={20} />
               </span>
               <div>
-                <h2>Receipt & notes</h2>
-                <p>Add proof of purchase now or anytime later.</p>
+                <h2>First document & notes</h2>
+                <p>Add a bill, warranty card or other proof now or anytime later.</p>
               </div>
             </div>
+            <label className="field">
+              <span>Document type</span>
+              <select
+                value={fileCategory}
+                onChange={(event) => setFileCategory(event.target.value)}
+              >
+                {documentTypes.map((type) => (
+                  <option value={type.value} key={type.value}>
+                    {type.label}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label className="upload-zone">
               <input
                 type="file"
@@ -285,7 +301,7 @@ export default function ProductFormPage() {
               <span className="upload-icon">
                 <FileUp size={24} />
               </span>
-              <strong>{file ? file.name : 'Choose a receipt file'}</strong>
+              <strong>{file ? file.name : 'Choose a document file'}</strong>
               <span>PDF, PNG or JPEG · Up to 10 MB</span>
             </label>
             {file && (

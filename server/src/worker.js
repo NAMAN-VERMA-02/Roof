@@ -76,8 +76,8 @@ export async function processDueJobs(
         from: config.smtp.from,
         to: user.email,
         subject: `Roof reminder: ${product.name} warranty ends ${description}`,
-        text: `Hi ${user.name},\n\nThe warranty for ${product.name} (${product.brand}) ends on ${product.warrantyEndDate}. Keep your receipt ready in Roof.\n\nThis reminder was requested in your Roof settings.`,
-        html: `<p>Hi ${escapeHtml(user.name)},</p><p>The warranty for <strong>${escapeHtml(product.name)}</strong> (${escapeHtml(product.brand)}) ends on <strong>${product.warrantyEndDate}</strong>.</p><p>Keep your receipt ready in Roof.</p>`,
+        text: `Hi ${user.name},\n\nThe warranty for ${product.name} (${product.brand}) ends on ${product.warrantyEndDate}. Your warranty documents and proof of purchase are ready in Roof.\n\nThis reminder was requested in your Roof settings.`,
+        html: `<p>Hi ${escapeHtml(user.name)},</p><p>The warranty for <strong>${escapeHtml(product.name)}</strong> (${escapeHtml(product.brand)}) ends on <strong>${product.warrantyEndDate}</strong>.</p><p>Your warranty documents and proof of purchase are ready in Roof.</p>`,
       });
       job.status = 'sent';
       job.sentAt = new Date();

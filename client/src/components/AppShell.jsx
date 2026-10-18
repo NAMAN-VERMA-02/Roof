@@ -4,6 +4,7 @@ import {
   BellRing,
   ChevronDown,
   CircleHelp,
+  FileText,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -14,7 +15,12 @@ import {
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 
-const titles = { '/dashboard': 'Dashboard', '/products': 'My products', '/reminders': 'Reminders' };
+const titles = {
+  '/dashboard': 'Dashboard',
+  '/products': 'My products',
+  '/documents': 'Documents',
+  '/reminders': 'Reminders',
+};
 
 export default function AppShell() {
   const { user, logout } = useAuth();
@@ -64,6 +70,13 @@ export default function AppShell() {
             <Archive size={19} /> My products
           </NavLink>
           <NavLink
+            to="/documents"
+            onClick={() => setOpen(false)}
+            className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+          >
+            <FileText size={19} /> Documents
+          </NavLink>
+          <NavLink
             to="/reminders"
             onClick={() => setOpen(false)}
             className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
@@ -77,7 +90,7 @@ export default function AppShell() {
               <ShieldCheck size={19} />
             </div>
             <strong>Safe under one roof</strong>
-            <p>Your receipts and product details are private to your account.</p>
+            <p>Your warranty documents and product details are private to your account.</p>
           </div>
           <button className="nav-link signout" onClick={signOut}>
             <LogOut size={18} /> Sign out
