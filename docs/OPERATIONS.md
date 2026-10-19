@@ -49,6 +49,21 @@ Restart the API and worker. Verify `GET /api/health`, sign in, open a known prod
 
 Set `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, and `SMTP_FROM` in the ignored `server/.env` file using an account from your email provider. The provider must permit SMTP sending from `SMTP_FROM`. Restart the API and worker after changing these settings. A real inbox test with a product whose reminder is due is required before relying on email delivery; the automated test uses a local SMTP server only.
 
+For local development, `npm run local` starts a loopback-only SMTP receiver and an inbox at `http://localhost:8025` when `SMTP_HOST` is unset. Captured messages are saved in ignored `.local-mail/`; this verifies the scheduling and delivery pipeline without sending email over the internet. Set `SMTP_HOST` to switch the local command to an external provider. Do not expose the local inbox outside your computer.
+
+For a small college demonstration with real email, a personal Gmail account can use an app password if Google makes that option available for the account. Enable 2-Step Verification and create an app password in your own Google Account. Put the following values in the ignored `server/.env`; replace the address and password yourself, and never commit or share the password:
+
+```dotenv
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=your-address@gmail.com
+SMTP_PASS=your-16-character-app-password
+SMTP_FROM=Roof <your-address@gmail.com>
+```
+
+Restart Roof after saving the file. `npm run local` will then use Gmail instead of the local inbox. Google may withhold app passwords on some managed or specially protected accounts; in that case use an SMTP provider your account permits. A real inbox test is still needed after the provider accepts the credentials.
+
 ## Production checks
 
 - Put the API behind HTTPS and set `NODE_ENV=production` and `APP_ORIGIN` to the exact public HTTPS origin.

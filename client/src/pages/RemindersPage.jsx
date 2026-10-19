@@ -18,6 +18,7 @@ export default function RemindersPage() {
   const [preferences, setPreferences] = useState(null);
   const [jobs, setJobs] = useState([]);
   const [emailConfigured, setEmailConfigured] = useState(true);
+  const [emailPreviewUrl, setEmailPreviewUrl] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -26,6 +27,7 @@ export default function RemindersPage() {
       .then(([p, h]) => {
         setPreferences(p.preferences);
         setEmailConfigured(p.emailConfigured);
+        setEmailPreviewUrl(p.emailPreviewUrl);
         setJobs(h.jobs);
       })
       .catch((err) => setError(friendlyError(err)));
@@ -77,6 +79,15 @@ export default function RemindersPage() {
         <Notice type="error">
           Email delivery is not configured on this server. Your settings are saved, but reminders
           cannot reach your inbox until the server's SMTP settings are added.
+        </Notice>
+      )}
+      {emailPreviewUrl && preferences && (
+        <Notice>
+          Local testing is active. Reminder emails are captured on this computer.{' '}
+          <a href={emailPreviewUrl} target="_blank" rel="noreferrer">
+            Open the local inbox
+          </a>
+          .
         </Notice>
       )}
       {!preferences ? (
@@ -215,8 +226,9 @@ export default function RemindersPage() {
             <div className="aside-note">
               <Mail size={19} />
               <p>
-                Delivery needs an email provider configured on the server. Your reminder history
-                shows failed attempts so nothing is silently marked as sent.
+                {emailPreviewUrl
+                  ? 'During local testing, messages appear in the local inbox instead of your real email.'
+                  : 'Delivery needs an email provider configured on the server. Your reminder history shows failed attempts so nothing is silently marked as sent.'}
               </p>
             </div>
           </aside>

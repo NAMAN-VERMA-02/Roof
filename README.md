@@ -62,7 +62,7 @@ npm run local
 
 Open **[http://localhost:5173](http://localhost:5173)**, then register an account. The API is at `http://localhost:4000`; `GET /api/health` returns its health status.
 
-`npm run local` starts the frontend, API, reminder processor, and a local MongoDB instance. Its data is stored in the ignored `.local-mongo/` directory and survives restarts. Stop the processes with `Ctrl+C`.
+`npm run local` starts the frontend, API, reminder processor, a local MongoDB instance, and a local email inbox at **[http://localhost:8025](http://localhost:8025)**. Database data is stored in the ignored `.local-mongo/` directory; captured emails are in `.local-mail/`. Both survive restarts. Reminder emails appear in the local inbox without requiring an external SMTP account; they are not delivered to real email addresses. Stop the processes with `Ctrl+C`.
 
 For a temporary database that is removed when the process stops, run `npm run demo` instead.
 
@@ -99,13 +99,13 @@ All server settings belong in `server/.env`. See [`server/.env.example`](server/
 | `SMTP_FROM` | Sender address shown on reminder emails | `Roof <no-reply@example.com>` |
 | `WORKER_INTERVAL_MS` | Time between reminder checks | `60000` |
 
-The local and demo commands provide their own MongoDB instances; they still read other settings from `server/.env`. **Real email requires working SMTP credentials.** Without `SMTP_HOST`, due delivery attempts are recorded as failed or retried, rather than being marked as sent.
+The local and demo commands provide their own MongoDB instances; they still read other settings from `server/.env`. `npm run local` automatically captures reminder emails at `http://localhost:8025` when `SMTP_HOST` is unset. If `SMTP_HOST` is set, it sends using that provider instead. **Real inbox delivery requires working SMTP credentials.** With `npm run dev` or `npm run demo`, leaving `SMTP_HOST` unset causes due attempts to be retried or marked failed rather than sent.
 
 ## Project commands
 
 | Command | Purpose |
 | --- | --- |
-| `npm run local` | Start the full app with persistent local MongoDB data |
+| `npm run local` | Start the full app with persistent local MongoDB data and a local email inbox |
 | `npm run demo` | Start the full app with disposable MongoDB data |
 | `npm run dev` | Start the API, worker, and frontend using `MONGODB_URI` |
 | `npm test` | Run server and client tests |

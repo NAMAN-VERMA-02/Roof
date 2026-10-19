@@ -1,6 +1,7 @@
 node_modules/
 client/dist/
 .local-mongo/
+.local-mail/
 .env
 .env.*
 !.env.example

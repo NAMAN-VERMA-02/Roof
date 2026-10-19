@@ -22,6 +22,7 @@ router.get(
     res.json({
       preferences: { enabled: preferences.enabled, offsetsDays: preferences.offsetsDays },
       emailConfigured: Boolean(config.smtp.host),
+      emailPreviewUrl: config.smtp.previewUrl || null,
     });
   }),
 );
