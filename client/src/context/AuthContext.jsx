@@ -17,7 +17,11 @@ export function AuthProvider({ children }) {
     setUser(data.user);
   };
   const register = async (name, email, password) => {
-    const data = await api('/auth/register', { method: 'POST', body: { name, email, password } });
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const data = await api('/auth/register', {
+      method: 'POST',
+      body: { name, email, password, ...(timeZone ? { timeZone } : {}) },
+    });
     setUser(data.user);
   };
   const logout = async () => {

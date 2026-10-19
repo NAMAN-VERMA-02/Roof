@@ -62,7 +62,14 @@ test('full account, product, receipt, contact and reminder lifecycle is private'
   assert.equal(response.status, 201, JSON.stringify(response.body));
   const receiptId = response.body.receipt.id;
   assert.equal((await alice.get(`/api/products/${productId}/documents`)).body.documents.length, 1);
-  assert.equal((await alice.get(`/api/receipts/${receiptId}/file`)).status, 200);
+  const retrieved = await alice.get(`/api/receipts/${receiptId}/file`);
+  assert.equal(retrieved.status, 200);
+  assert.match(retrieved.headers['content-type'], /application\/pdf/);
+  assert.deepEqual(retrieved.body, pdf);
+  assert.match(
+    (await alice.get(`/api/receipts/${receiptId}/file?download=1`)).headers['content-disposition'],
+    /^attachment;/,
+  );
   assert.equal((await bob.get(`/api/receipts/${receiptId}/file`)).status, 404);
   assert.equal((await bob.delete(`/api/receipts/${receiptId}`)).status, 404);
 
@@ -75,7 +82,22 @@ test('full account, product, receipt, contact and reminder lifecycle is private'
   assert.equal(response.status, 201);
   const contactId = response.body.contact.id;
   assert.equal((await bob.get(`/api/products/${productId}/service-centers`)).status, 404);
+  assert.equal(
+    (await bob.patch(`/api/service-centers/${contactId}`).send({ name: 'Changed' })).status,
+    404,
+  );
   assert.equal((await bob.delete(`/api/service-centers/${contactId}`)).status, 404);
+  assert.equal(
+    (
+      await alice.patch(`/api/service-centers/${contactId}`).send({
+        name: 'Northstar Repairs',
+        phone: '1234567890',
+        address: 'Main Street',
+        website: 'https://example.com',
+      })
+    ).body.contact.name,
+    'Northstar Repairs',
+  );
 
   response = await alice.get('/api/dashboard/summary');
   assert.equal(response.body.counts.total, 1);
@@ -87,6 +109,10 @@ test('full account, product, receipt, contact and reminder lifecycle is private'
     .put('/api/reminder-preferences')
     .send({ enabled: true, offsetsDays: [30, 7, 1] });
   assert.equal(response.status, 200);
+  assert.equal(
+    (await alice.get('/api/reminder-preferences')).body.emailConfigured,
+    Boolean(config.smtp.host),
+  );
   assert.equal((await alice.get('/api/reminders/history')).status, 200);
 
   response = await alice
@@ -102,6 +128,33 @@ test('full account, product, receipt, contact and reminder lifecycle is private'
   assert.equal((await alice.get('/api/dashboard/summary')).body.counts.total, 0);
   assert.equal((await alice.post('/api/auth/logout')).status, 204);
   assert.equal((await alice.get('/api/products')).status, 401);
+});
+
+test('login replaces an existing session and logout revokes the current one', async () => {
+  const agent = supertest.agent(app);
+  const registered = await agent
+    .post('/api/auth/register')
+    .send({ name: 'Session Owner', email: 'session@example.com', password: 'strongpassword' });
+  assert.equal(registered.status, 201);
+  const oldCookie = registered.headers['set-cookie'][0].split(';')[0];
+  assert.equal((await agent.get('/api/auth/me')).body.user.email, 'session@example.com');
+
+  assert.equal(
+    (
+      await agent
+        .post('/api/auth/login')
+        .send({ email: 'session@example.com', password: 'wrongpassword' })
+    ).status,
+    401,
+  );
+  const signedIn = await agent
+    .post('/api/auth/login')
+    .send({ email: 'session@example.com', password: 'strongpassword' });
+  assert.equal(signedIn.status, 200);
+  assert.equal((await supertest(app).get('/api/auth/me').set('Cookie', oldCookie)).status, 401);
+  assert.equal((await agent.get('/api/auth/me')).status, 200);
+  assert.equal((await agent.post('/api/auth/logout')).status, 204);
+  assert.equal((await agent.get('/api/auth/me')).status, 401);
 });
 
 test('document vault finds warranty proof and keeps it private', async () => {
@@ -165,6 +218,15 @@ test('invalid inputs and upload types return clear errors', async () => {
     .post(`/api/products/${product.body.product.id}/receipts`)
     .attach('file', Buffer.from('not a receipt'), 'note.txt');
   assert.equal(upload.status, 400);
+  const tooLarge = await agent
+    .post(`/api/products/${product.body.product.id}/documents`)
+    .attach('file', Buffer.alloc(10 * 1024 * 1024 + 1), 'too-large.pdf');
+  assert.equal(tooLarge.status, 400);
+  assert.match(tooLarge.body.error, /10 MB/);
+  assert.equal(
+    (await agent.get(`/api/products/${product.body.product.id}/documents`)).body.documents.length,
+    0,
+  );
 });
 
 test('worker records one successful due email attempt', async () => {
@@ -209,6 +271,7 @@ test('configured SMTP transport delivers a due reminder to a local mail server',
     },
   });
   await new Promise((resolve) => smtp.listen(0, '127.0.0.1', resolve));
+  const previousSmtp = { ...config.smtp };
   config.smtp.host = '127.0.0.1';
   config.smtp.port = smtp.server.address().port;
   config.smtp.secure = false;
@@ -232,6 +295,7 @@ test('configured SMTP transport delivers a due reminder to a local mail server',
     assert.match(message, /smtp@example.com/);
     assert.equal((await ReminderJob.findById(job.id)).status, 'sent');
   } finally {
+    Object.assign(config.smtp, previousSmtp);
     await new Promise((resolve) => smtp.close(resolve));
   }
 });

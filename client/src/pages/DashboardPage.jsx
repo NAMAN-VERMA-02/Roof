@@ -6,6 +6,7 @@ import {
   Archive,
   BellRing,
   CalendarClock,
+  CalendarX2,
   CheckCircle2,
   Clock3,
   FileText,
@@ -102,6 +103,13 @@ export default function DashboardPage() {
                 value={counts.expiring}
                 note="Within 30 days"
                 tone="amber"
+              />
+              <Stat
+                icon={CalendarX2}
+                label="Expired"
+                value={counts.expired}
+                note="Coverage ended"
+                tone="red"
               />
               <Stat
                 icon={FileText}

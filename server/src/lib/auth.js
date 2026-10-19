@@ -23,6 +23,12 @@ export async function createSession(res, userId) {
   });
 }
 
+export async function replaceSession(req, res, userId) {
+  const previousToken = req.cookies?.[COOKIE];
+  if (previousToken) await Session.deleteOne({ tokenHash: tokenHash(previousToken) });
+  await createSession(res, userId);
+}
+
 export async function removeSession(req, res) {
   const token = req.cookies?.[COOKIE];
   if (token) await Session.deleteOne({ tokenHash: tokenHash(token) });

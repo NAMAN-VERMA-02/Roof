@@ -122,7 +122,7 @@ All routes below are under `/api`. Private routes require a valid session cookie
 | Authentication | `POST /auth/register`, `POST /auth/login`, `POST /auth/logout`, `GET /auth/me` |
 | Products | `GET/POST /products`, `GET/PATCH/DELETE /products/:id` |
 | Documents | `GET /documents`, `GET/POST /products/:productId/documents`, `PATCH/DELETE /documents/:id`, `GET /documents/:id/file` |
-| Dashboard | `GET /dashboard` |
+| Dashboard | `GET /dashboard/summary` |
 | Reminders | `GET/PUT /reminder-preferences`, `GET /reminders/history` |
 | Service contacts | `GET/POST /products/:productId/service-centers`, `PATCH/DELETE /service-centers/:id` |
 
@@ -160,6 +160,6 @@ Warranty_Receipt_Vault_Architecture.pdf   Initial architecture document
 
 ## Deployment notes
 
-Build the frontend with `npm run build`, configure a persistent MongoDB, and run the API (`npm run start`) and worker (`npm run worker -w server`) as separate processes. Set `NODE_ENV=production` and `APP_ORIGIN` to the site's exact HTTPS origin. Serve the app behind HTTPS so production session cookies work, and back up both MongoDB collections and GridFS files. Keep `server/.env`, `.local-mongo/`, and `node_modules/` out of Git.
+Build the frontend with `npm run build`, configure a persistent MongoDB, and run the API (`npm run start`) and worker (`npm run worker -w server`) as separate processes. Set `NODE_ENV=production` and `APP_ORIGIN` to the site's exact HTTPS origin. Serve the app behind HTTPS so production session cookies work, and back up both MongoDB collections and GridFS files. Follow the [backup and recovery guide](docs/OPERATIONS.md). Keep `server/.env`, `.local-mongo/`, and `node_modules/` out of Git.
 
 The [architecture PDF](Warranty_Receipt_Vault_Architecture.pdf) documents the initial requirements and design. The searchable document vault is an extension of that initial scope.

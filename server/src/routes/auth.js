@@ -4,7 +4,7 @@ import { rateLimit } from 'express-rate-limit';
 import { z } from 'zod';
 import { User } from '../models.js';
 import { asyncRoute, HttpError } from '../lib/http.js';
-import { auth, createSession, removeSession } from '../lib/auth.js';
+import { auth, replaceSession, removeSession } from '../lib/auth.js';
 import { validTimeZone } from '../lib/dates.js';
 
 const router = Router();
@@ -40,7 +40,7 @@ router.post(
       passwordHash: await bcrypt.hash(data.password, 12),
       timeZone: data.timeZone || 'Asia/Kolkata',
     });
-    await createSession(res, user._id);
+    await replaceSession(req, res, user._id);
     res
       .status(201)
       .json({ user: { id: user.id, name: user.name, email: user.email, timeZone: user.timeZone } });
@@ -55,7 +55,7 @@ router.post(
     const user = await User.findOne({ email: data.email });
     if (!user || !(await bcrypt.compare(data.password, user.passwordHash)))
       throw new HttpError(401, 'Incorrect email or password.');
-    await createSession(res, user._id);
+    await replaceSession(req, res, user._id);
     res.json({
       user: { id: user.id, name: user.name, email: user.email, timeZone: user.timeZone },
     });

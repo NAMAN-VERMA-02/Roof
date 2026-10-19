@@ -17,6 +17,7 @@ const choices = [30, 14, 7, 3, 1, 0];
 export default function RemindersPage() {
   const [preferences, setPreferences] = useState(null);
   const [jobs, setJobs] = useState([]);
+  const [emailConfigured, setEmailConfigured] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -24,6 +25,7 @@ export default function RemindersPage() {
     Promise.all([api('/reminder-preferences'), api('/reminders/history')])
       .then(([p, h]) => {
         setPreferences(p.preferences);
+        setEmailConfigured(p.emailConfigured);
         setJobs(h.jobs);
       })
       .catch((err) => setError(friendlyError(err)));
@@ -71,6 +73,12 @@ export default function RemindersPage() {
         </Notice>
       )}
       {notice && <Notice onClose={() => setNotice('')}>{notice}</Notice>}
+      {!emailConfigured && preferences && (
+        <Notice type="error">
+          Email delivery is not configured on this server. Your settings are saved, but reminders
+          cannot reach your inbox until the server's SMTP settings are added.
+        </Notice>
+      )}
       {!preferences ? (
         !error && <Loading />
       ) : (

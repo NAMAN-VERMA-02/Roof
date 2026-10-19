@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { ReminderJob, ReminderPreference } from '../models.js';
 import { asyncRoute } from '../lib/http.js';
 import { getPreferences, syncJobsForUser } from '../lib/reminders.js';
+import { config } from '../config.js';
 
 const router = Router();
 const input = z.object({
@@ -20,6 +21,7 @@ router.get(
     const preferences = await getPreferences(req.user._id);
     res.json({
       preferences: { enabled: preferences.enabled, offsetsDays: preferences.offsetsDays },
+      emailConfigured: Boolean(config.smtp.host),
     });
   }),
 );
